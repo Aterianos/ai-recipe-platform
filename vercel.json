@@ -1,9 +1,4 @@
 {
-  "build": {
-    "env": {
-      "ANTHROPIC_API_KEY": "@anthropic-api-key"
-    }
-  },
   "functions": {
     "app/api/detect-ingredients/route.ts": {
       "maxDuration": 30
