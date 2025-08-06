@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import { type GeneratedRecipe } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
-export default function GenerateRecipesPage() {
+function GenerateRecipesContent() {
   const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -316,5 +316,13 @@ export default function GenerateRecipesPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function GenerateRecipesPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto py-16 text-center">Loading...</div>}>
+      <GenerateRecipesContent />
+    </Suspense>
   )
 }

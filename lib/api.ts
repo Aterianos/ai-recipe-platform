@@ -16,9 +16,28 @@ export async function detectIngredients(imageUrl: string): Promise<DetectedIngre
   try {
     // Fetch the image and convert to base64
     const imageResponse = await fetch(imageUrl)
+    
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.status}`)
+    }
+    
     const imageBuffer = await imageResponse.arrayBuffer()
     const base64Image = Buffer.from(imageBuffer).toString('base64')
-    const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg'
+    
+    // Map content type to allowed Claude formats
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg'
+    let mimeType: "image/jpeg" | "image/png" | "image/gif" | "image/webp"
+    
+    if (contentType.includes('png')) {
+      mimeType = 'image/png'
+    } else if (contentType.includes('gif')) {
+      mimeType = 'image/gif'
+    } else if (contentType.includes('webp')) {
+      mimeType = 'image/webp'
+    } else {
+      // Default to jpeg for unknown types or jpeg
+      mimeType = 'image/jpeg'
+    }
 
     const response = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
@@ -31,7 +50,7 @@ export async function detectIngredients(imageUrl: string): Promise<DetectedIngre
               type: "image",
               source: {
                 type: "base64",
-                media_type: mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+                media_type: mimeType,
                 data: base64Image,
               },
             },
@@ -50,10 +69,11 @@ export async function detectIngredients(imageUrl: string): Promise<DetectedIngre
       ],
     })
 
-    const content = response.content[0]?.text
-    if (!content) {
-      throw new Error('No response from Claude')
+    const contentBlock = response.content[0]
+    if (!contentBlock || contentBlock.type !== 'text') {
+      throw new Error('No text response from Claude')
     }
+    const content = contentBlock.text
 
     // Parse the JSON response
     const jsonMatch = content.match(/\[[\s\S]*\]/)
@@ -111,10 +131,11 @@ export async function generateRecipe(ingredients: string[]): Promise<GeneratedRe
       ],
     })
 
-    const content = response.content[0]?.text
-    if (!content) {
-      throw new Error('No response from Claude')
+    const contentBlock = response.content[0]
+    if (!contentBlock || contentBlock.type !== 'text') {
+      throw new Error('No text response from Claude')
     }
+    const content = contentBlock.text
 
     // Parse the JSON response
     const jsonMatch = content.match(/\[[\s\S]*\]/)
